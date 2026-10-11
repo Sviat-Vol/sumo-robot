@@ -55,13 +55,15 @@ void driveMotors(int speedA, int speedB)
 }
 
 // -------- DETECTION --------
-bool rawObjectDetected()
+// Returns the closest valid distance in mm within the scanned zones,
+// or -1 if no valid target was found.
+int rawObjectDistance()
 {
   if (!myImager.isDataReady())
-    return false;
+    return -1;
 
   if (!myImager.getRangingData(&measurementData))
-    return false;
+    return -1;
 
   int minDist = 9999;
   int validZones = 0;
@@ -79,15 +81,15 @@ bool rawObjectDetected()
         validZones++;
         if (d > 0 && d < minDist)
           minDist = d;
-        
+
       }
     }
   }
 
   if (validZones == 0)
-    return false;
+    return -1;
   Serial.println(minDist);
-  return (minDist < 950);
+  return minDist;
 }
 
 // -------- SETUP --------
@@ -156,7 +158,8 @@ void loop()
   }
 
   // -------- ACTIVE MODE --------
-  bool detected = rawObjectDetected();
+  int minDist = rawObjectDistance();
+  bool detected = (minDist > 0 && minDist < 950);
 
   if (detected)
   {
@@ -166,28 +169,8 @@ void loop()
   {
     detectCounter = 0;
   }
-  // int minDist = 9999;
-  // int validZones = 0;
 
-  // for (int row = 3; row < 7; row++)
-  // {
-  //   for (int col = 2; col <= 7; col++)
-  //   {
-  //     int i = row * 8 + col;
-  //     int d = measurementData.distance_mm[i];
-  //     int status = measurementData.target_status[i];
-
-  //     if (status == 5 || status == 9)
-  //     {
-  //       validZones++;
-  //       if (d > 0 && d < minDist)
-  //         minDist = d;
-        
-  //     }
-  //   }
-  // }
-  
-  if (detected < 950) //minDist -> detected
+  if (detected)
   {
     // Attack
     driveMotors(-maxSpeed, maxSpeed);
